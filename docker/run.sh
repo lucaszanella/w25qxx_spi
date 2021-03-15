@@ -1,0 +1,1 @@
+sudo docker run -v $PWD/..:/home/project -it w25qxx_spi /bin/bash
