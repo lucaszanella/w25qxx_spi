@@ -4,9 +4,10 @@ use std::env;
 use std::path::PathBuf;
 
 fn main() {
-    // Tell cargo to tell rustc to link the system bzip2
-    // shared library.
-    println!("cargo:rustc-link-lib=wiringPi");
+    let lib_path = PathBuf::from(env::current_dir().unwrap().join("..").join("WiringPi").join("wiringPi"));
+
+    println!("cargo:rustc-link-search={}", lib_path.display());
+    println!("cargo:rustc-link-lib=dylib=wiringPi");
 
     // Tell cargo to invalidate the built crate whenever the wrapper changes
     println!("cargo:rerun-if-changed=wrapper.h");
