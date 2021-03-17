@@ -10,4 +10,4 @@ RUN curl --proto '=https' --tlsv1.2 -o rust.sh https://sh.rustup.rs\
     && /bin/bash rust.sh -y
 
 ENV PATH="/root/.cargo/bin:/usr/local/cmake/bin:${PATH}"
-
+ENV LD_LIBRARY_PATH="/home/project/WiringPi/wiringPi:${LD_LIBRARY_PATH}"

@@ -7,8 +7,9 @@ fn main() {
     let lib_path = PathBuf::from(env::current_dir().unwrap().join("..").join("WiringPi").join("wiringPi"));
 
     println!("cargo:rustc-link-search={}", lib_path.display());
-    println!("cargo:rustc-link-lib=dylib=wiringPi");
-
+    println!("cargo:rustc-link-lib=wiringPi");
+    //println!("cargo:rustc-flags=-lwiringPi");
+    
     // Tell cargo to invalidate the built crate whenever the wrapper changes
     println!("cargo:rerun-if-changed=wrapper.h");
 

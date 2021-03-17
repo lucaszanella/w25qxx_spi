@@ -1,14 +1,26 @@
-#![allow(non_upper_case_globals)]
-#![allow(non_camel_case_types)]
-#![allow(non_snake_case)]
+mod w25q;
+use w25q::W25Q;
 
-include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
+const SPI_CHANNEL: i32 = 0;
+//2MHz
+const SPEED: i32 = 2000000;
+
+fn dump_slice(slice: &[u8]) {
+    for i in 0..slice.len() {
+        if i!=slice.len()
+            print!("{},", slice[i]);
+        else 
+            print!("{}", slice[i]);
+    }
+    println!("");
+}
 
 fn main() {
-    const SPI_CHANNEL: i32 = 0;
-    //2MHz
-    const speed: i32 = 2000000;
-    //unsafe{wiringPiSPISetup(SPI_CHANNEL, speed)};
-    unsafe{pwmWrite(0, 0)};
-    println!("Hello, world!");
+
+    let w25q = W25Q::new(SPI_CHANNEL, SPEED).unwrap();
+    let manufacturer_id = w25q.read_manufacturer_id();
+    let jedec_id = w25q.read_jedec_id();
+    println!("manufacturer_id: {}", dump_slice(manufacturer_id));
+    println!("jedec_id: {}", dump_slice(jedec_id));
+    println!("end");
 }
