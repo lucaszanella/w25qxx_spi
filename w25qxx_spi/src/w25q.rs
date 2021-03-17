@@ -23,7 +23,7 @@ impl W25Q {
     }
 
     pub fn read_manufacturer_id(&self) -> [u8; 6] {
-        let mut slice :[u8;3] = [0;3];
+        let mut slice :[u8;6] = [0;6];
         let mut data: [::std::os::raw::c_char; 6] = [0;6];
         let mut _r: i32 = 0;
         data[0] = 0x90;
@@ -36,7 +36,7 @@ impl W25Q {
     }
 
     pub fn read_jedec_id(&self) -> [u8; 4] {
-        let mut slice :[u8;3] = [0;3];
+        let mut slice :[u8;4] = [0;4];
         let mut data: [::std::os::raw::c_char; 4] = [0;4];
         let mut _r: i32 = 0;
         data[0] = 0x9F;
