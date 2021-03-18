@@ -7,7 +7,7 @@ const SPEED: i32 = 2000000;
 
 fn dump_slice(slice: &[u8]) {
     for i in 0..slice.len() {
-        if i!=slice.len() {
+        if i!=slice.len()-1 {
             print!("{},", slice[i]);
         } else { 
             print!("{}", slice[i]);
@@ -20,10 +20,16 @@ fn main() {
 
     let w25q = W25Q::new(SPI_CHANNEL, SPEED).unwrap();
     let register_1 = w25q.read_status_register_1();
+    let register_2 = w25q.read_status_register_2();
+    let register_3 = w25q.read_status_register_3();
     let manufacturer_id = w25q.read_manufacturer_id();
     let jedec_id = w25q.read_jedec_id();
     print!("register_1: ");
     dump_slice(&register_1);
+    print!("register_2: ");
+    dump_slice(&register_2);
+    print!("register_3: ");
+    dump_slice(&register_3);
     print!("manufacturer_id: ");
     dump_slice(&manufacturer_id);
     print!("jedec_id: ");

@@ -32,7 +32,25 @@ impl W25Q {
         slice
     }
 
+    pub fn read_status_register_2(&self) -> [u8;2]{
+        let mut slice :[u8;2] = [0;2];
+        let mut data: [::std::os::raw::c_char; 2] = [0;2];
+        data[0] = 0x35;
+        let mut _r: i32 = 0;
+        _r = unsafe{wiringPiSPIDataRW (self.spi_channel,data.as_mut_ptr(), data.len() as i32)};
+        slice.clone_from_slice(&data);
+        slice
+    }
 
+    pub fn read_status_register_3(&self) -> [u8;2]{
+        let mut slice :[u8;2] = [0;2];
+        let mut data: [::std::os::raw::c_char; 2] = [0;2];
+        data[0] = 0x11;
+        let mut _r: i32 = 0;
+        _r = unsafe{wiringPiSPIDataRW (self.spi_channel,data.as_mut_ptr(), data.len() as i32)};
+        slice.clone_from_slice(&data);
+        slice
+    }
     /*
     //
     // ステータスレジスタ1の値取得
