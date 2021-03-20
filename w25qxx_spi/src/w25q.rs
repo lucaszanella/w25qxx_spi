@@ -71,7 +71,7 @@ impl W25Q {
         spi.speed_hz      = self.spi_speeds[channel as usize] as u32;
         spi.bits_per_word = SPI_BW;
         
-        libc::ioctl(self.spi_fds[channel as usize], lubc::SPI_IOC_MESSAGE(1), &spi)
+        libc::ioctl(self.spi_fds[channel as usize], ioctls::SPI_IOC_MESSAGE(1), &spi)
     }
 
     /*
@@ -111,18 +111,20 @@ impl W25Q {
 
         self.spi_speeds[channel as usize] = speed;
         self.spi_fds[channel as usize] = fd;
-        libc::ioctl(fd, libc::SPI_IOC_WR_MODE, &mode);
-
+        //libc::ioctl(fd, ioctls::SPI_IOC_WR_MODE, &mode);
+        unsafe{ioctls::spi_ioc_wr_mode(fd, &mode)};
         if fd < 0 {
             return Err(format!("SPI Mode Change failure, {}", 1));
         }
 
-        libc::ioctl(fd, libc::SPI_IOC_WR_BITS_PER_WORD, SPI_BW as libc::c_uint);
+        //libc::ioctl(fd, ioctls::SPI_IOC_WR_BITS_PER_WORD, SPI_BW as libc::c_uint);
+        unsafe{ioctls::spi_ioc_wr_mode(fd, SPI_BW as libc::c_uint)};
         if fd < 0 {
             return Err(format!("SPI BPW Change failure: {}", 1));
         }
 
-        libc::ioctl(fd, libc::SPI_IOC_WR_MAX_SPEED_HZ, &speed);
+        //libc::ioctl(fd, ioctls::SPI_IOC_WR_MAX_SPEED_HZ, &speed);
+        ioctls::spi_ioc_wr_max_speed_hz(fd, &speed);
         if fd < 0 {
             return Err(format!("SPI Speed Change failure: {}", 1));
         }
