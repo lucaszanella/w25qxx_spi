@@ -12,6 +12,7 @@ const CMD_READ_STATUS_R3: u8 = 0x11;
 const CMD_SECTOR_ERASE: u8 = 0x20;
 const CMD_MANUFACURER_ID: u8 = 0x90;
 const CMD_JEDEC_ID: u8 = 0x9f;
+const CMD_PAGE_PROGRAM: u8 = 0x02;
 
 pub struct W25Q {
     spi_channel: i32,
@@ -260,6 +261,70 @@ impl W25Q {
         data[0] = CMD_WRIRE_ENABLE;
         let mut _r: i32 = 0;
         _r = unsafe{wiringPiSPIDataRW (self.spi_channel,data.as_mut_ptr(), data.len() as i32)};
+    }
+
+    /*
+            //
+        // データの書き込み
+        // sect_no(in) : セクタ番号(0x000 - 0xFFF) 
+        // inaddr(in)  : セクタ内アドレス(0x000-0xFFF)
+        // data(in)    : 書込みデータ格納アドレス
+        // n(in)       : 書込みバイト数(0～256)
+        //
+        uint16_t W25Q64_pageWrite(uint16_t sect_no, uint16_t inaddr, uint8_t* buf, uint16_t n) {
+        if (n > 256) return 0;
+        unsigned char *data;
+        int rc;
+
+        uint32_t addr = sect_no;
+        addr<<=12;
+        addr += inaddr;
+
+        // 書込み許可設定
+        W25Q64_WriteEnable();  
+        if (W25Q64_IsBusy()) return 0;  
+
+        data = (unsigned char*)malloc(n+4);
+        data[0] = CMD_PAGE_PROGRAM;
+        data[1] = (addr>>16) & 0xff;
+        data[2] = (addr>>8) & 0xff;
+        data[3] = addr & 0xFF;
+        memcpy(&data[4],buf,n);
+        rc = wiringPiSPIDataRW (_spich,data,n+4);
+        //spcDump("pageWrite",rc,buf,n);
+
+        // 処理待ち
+        while(W25Q64_IsBusy()) ;
+        free(data);
+        return rc;
+        }
+
+    */
+
+    pub fn page_write(&mut self, sector_number: u16, input_address: u16, slice: &[u8], n: u16) -> u32 {
+        if (n > 256) {
+            return 0;
+        }
+        let mut _r: i32 = 0;
+        let mut address:u32 = sector_number as u32;
+        address <<= 12;
+        address += input_address as u32;
+        self.write_enable();
+        if self.is_busy() {
+            return 0;
+        }
+        let mut data = vec![0u8;(n+4) as usize];
+        data[0] = CMD_PAGE_PROGRAM;
+        data[1] = ((address>>16) & 0xff) as u8;
+        data[2] = ((address>>8) & 0xff) as u8;
+        data[3] = (address & 0xFF) as u8;
+        _r = unsafe{wiringPiSPIDataRW (self.spi_channel,(&mut data[4..]).as_mut_ptr(), (n + 4) as i32)};
+        loop {
+            if !self.is_busy() {
+                break;
+            }
+        }
+        _r as u32
     }
 
     pub fn erase_sector(&mut self, sector_number: u16, figwait: bool) -> bool {
