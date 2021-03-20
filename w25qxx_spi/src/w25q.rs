@@ -1,9 +1,17 @@
 use wiringpi::*;
 use std::ffi::CString;
 
-const CMD_JEDEC_ID: u8 = 0x9f;
 const SPI_BW: u8 = 8;
 const SPI_DELAY: u16 = 0;
+const SR1_BUSY_MASK: u8 = 0x01;
+const CMD_WRIRE_ENABLE: u8 = 0x06;
+const CMD_READ_STATUS_R1: u8 = 0x05;
+const CMD_READ_UNIQUE_ID: u8 = 0x4B;
+const CMD_READ_STATUS_R2: u8 = 0x35;
+const CMD_READ_STATUS_R3: u8 = 0x11;
+const CMD_SECTOR_ERASE: u8 = 0x20;
+const CMD_MANUFACURER_ID: u8 = 0x90;
+const CMD_JEDEC_ID: u8 = 0x9f;
 
 pub struct W25Q {
     spi_channel: i32,
@@ -61,18 +69,19 @@ impl W25Q {
         }
     }
 
-    pub fn spi_data_rw(&mut self, channel_: i32, data: &[u8], len: u32) -> i32 {
+    pub fn spi_data_rw(&mut self, channel_: i32, data: &mut [u8]) -> i32 {
         let channel = channel_ & 1;
-        let spi = SpiIocTransfer::new();
-        spi.tx_buf        = data.as_mut_ptr();//(unsigned long) ?
-        spi.rx_buf        = data.as_mut_ptr();//(unsigned long) ?
-        spi.len           = len;
+        let mut spi = SpiIocTransfer::new();
+        spi.tx_buf        = data.as_mut_ptr() as u64;//(unsigned long) ?
+        spi.rx_buf        = data.as_mut_ptr() as u64;//(unsigned long) ?
+        spi.len           = data.len() as u32;
         spi.delay_usecs   = SPI_DELAY;
         spi.speed_hz      = self.spi_speeds[channel as usize] as u32;
         spi.bits_per_word = SPI_BW;
-        
-        libc::ioctl(self.spi_fds[channel as usize], ioctls::SPI_IOC_MESSAGE(1), &spi)
+        panic!("to be implemented");
+        //libc::ioctl(self.spi_fds[channel as usize], ioctls::SPI_IOC_MESSAGE(1), &spi)
     }
+
 
     /*
         int wiringPiSPIDataRW (int channel, unsigned char *data, int len)
@@ -99,11 +108,13 @@ impl W25Q {
 
     fn spi_setup_mode(&mut self, channel: i32, speed: u32, mode_: i32) -> Result<i32,String>{
         let mut fd: i32 = -1;
-        let mut spi_dev:[::std::os::raw::c_char; 32] = [0; 32];
+        let spi_dev:[::std::os::raw::c_char; 32] = [0; 32];
         let mode = mode_ & 3;
         let s = CString::new("/dev/spidev0.%d").expect("CString::new failed");
+        panic!("to be implemented");
+
         unsafe{libc::snprintf(spi_dev.as_mut_ptr(), 31, s.as_ptr(), channel)};
-        fd = libc::open (spi_dev.as_mut_ptr(), libc::O_RDWR);
+        fd = unsafe{libc::open (spi_dev.as_mut_ptr(), libc::O_RDWR)};
 
         if fd < 0 {
             return Err(format!("Unable to open SPI device: {}", 1));
@@ -112,19 +123,19 @@ impl W25Q {
         self.spi_speeds[channel as usize] = speed;
         self.spi_fds[channel as usize] = fd;
         //libc::ioctl(fd, ioctls::SPI_IOC_WR_MODE, &mode);
-        unsafe{ioctls::spi_ioc_wr_mode(fd, &mode)};
+        //unsafe{ioctls::spi_ioc_wr_mode(fd, &mode)};
         if fd < 0 {
             return Err(format!("SPI Mode Change failure, {}", 1));
         }
 
         //libc::ioctl(fd, ioctls::SPI_IOC_WR_BITS_PER_WORD, SPI_BW as libc::c_uint);
-        unsafe{ioctls::spi_ioc_wr_mode(fd, SPI_BW as libc::c_uint)};
+        //unsafe{ioctls::spi_ioc_wr_mode(fd, SPI_BW as libc::c_uint)};
         if fd < 0 {
             return Err(format!("SPI BPW Change failure: {}", 1));
         }
 
         //libc::ioctl(fd, ioctls::SPI_IOC_WR_MAX_SPEED_HZ, &speed);
-        ioctls::spi_ioc_wr_max_speed_hz(fd, &speed);
+        //ioctls::spi_ioc_wr_max_speed_hz(fd, &speed);
         if fd < 0 {
             return Err(format!("SPI Speed Change failure: {}", 1));
         }
@@ -135,7 +146,7 @@ impl W25Q {
     pub fn read_status_register_1(&self) -> Result<[u8;2], i32>{
         let mut slice :[u8;2] = [0;2];
         let mut data: [::std::os::raw::c_char; 2] = [0;2];
-        data[0] = 0x05;
+        data[0] = CMD_READ_STATUS_R1;
         let mut _r: i32 = 0;
         _r = unsafe{wiringPiSPIDataRW (self.spi_channel,data.as_mut_ptr(), data.len() as i32)};
         slice.clone_from_slice(&data);
@@ -145,7 +156,7 @@ impl W25Q {
     pub fn read_status_register_2(&self) ->  Result<[u8;2], i32>{
         let mut slice :[u8;2] = [0;2];
         let mut data: [::std::os::raw::c_char; 2] = [0;2];
-        data[0] = 0x35;
+        data[0] = CMD_READ_STATUS_R2;
         let mut _r: i32 = 0;
         _r = unsafe{wiringPiSPIDataRW (self.spi_channel,data.as_mut_ptr(), data.len() as i32)};
         slice.clone_from_slice(&data);
@@ -155,7 +166,7 @@ impl W25Q {
     pub fn read_status_register_3(&self) -> Result<[u8;2], i32>{
         let mut slice :[u8;2] = [0;2];
         let mut data: [::std::os::raw::c_char; 2] = [0;2];
-        data[0] = 0x11;
+        data[0] = CMD_READ_STATUS_R3;
         let mut _r: i32 = 0;
         _r = unsafe{wiringPiSPIDataRW (self.spi_channel,data.as_mut_ptr(), data.len() as i32)};
         slice.clone_from_slice(&data);
@@ -165,7 +176,7 @@ impl W25Q {
     pub fn read_unique_id(&self) ->  Result<[u8;13], i32> {
         let mut slice :[u8;13] = [0;13];
         let mut data: [::std::os::raw::c_char; 2] = [0;2];
-        data[0] = 0x4B;
+        data[0] = CMD_READ_UNIQUE_ID;
         let mut _r: i32 = 0;
         _r = unsafe{wiringPiSPIDataRW (self.spi_channel,data.as_mut_ptr(), data.len() as i32)};
         slice.clone_from_slice(&data);
@@ -175,7 +186,7 @@ impl W25Q {
     pub fn read(&self, address: u32, number_of_bytes: u16) ->  Result<Vec<u8>, u16> {
         let s: usize = number_of_bytes as usize + 4;
         let mut data = vec![0u8;s];
-        data[0] = 0x4B;
+        data[0] = CMD_READ_UNIQUE_ID;
         data[1] = ((address>>16) & 0xFF) as u8;     // A23-A16
         data[2] = ((address>>8) & 0xFF) as u8;      // A15-A08
         data[3] = (address & 0xFF) as u8;           // A07-A00
@@ -185,11 +196,97 @@ impl W25Q {
         Ok(v)
     }
 
+        /*
+    bool W25Q64_eraseSector(uint16_t sect_no, bool flgwait) {
+        unsigned char data[4];
+        int rc;
+        UNUSED(rc);
+        uint32_t addr = sect_no;
+        addr<<=12;
+
+        W25Q64_WriteEnable();
+        data[0] = CMD_SECTOR_ERASE;
+        data[1] = (addr>>16) & 0xff;
+        data[2] = (addr>>8) & 0xff;
+        data[3] = addr & 0xff;
+        rc = wiringPiSPIDataRW (_spich,data,sizeof(data));
+        
+        // 処理待ち
+        while(W25Q64_IsBusy() & flgwait) {
+            delay(10);
+        }
+        return true;
+        }
+    */
+
+
+    /*
+        bool W25Q64_IsBusy(void) {
+            unsigned char data[2];
+            int rc;
+            UNUSED(rc);
+            data[0] = CMD_READ_STATUS_R1;
+            rc = wiringPiSPIDataRW (_spich,data,sizeof(data));
+            //spcDump("IsBusy",rc,data,2);
+            uint8_t r1;
+            r1 = data[1];
+            if(r1 & SR1_BUSY_MASK) return true;
+            return false;
+        }
+    */
+    pub fn is_busy(&mut self) -> bool{
+        let mut data: [::std::os::raw::c_char; 2] = [0;2];
+        data[0] = CMD_READ_STATUS_R1;
+        let mut _r: i32 = 0;
+        _r = unsafe{wiringPiSPIDataRW (self.spi_channel,data.as_mut_ptr(), data.len() as i32)};
+        let mut r1: u8 = 0;
+        r1 = data[1];
+        if (r1 & SR1_BUSY_MASK) !=0 {
+            return true;
+        }
+        false
+    }
+
+    /*
+          unsigned char data[1];
+        int rc;
+        UNUSED(rc);
+        data[0] = CMD_WRIRE_ENABLE;
+        rc = wiringPiSPIDataRW (_spich,data,sizeof(data));
+    */
+
+    pub fn write_enable(&mut self) {
+        let mut data: [::std::os::raw::c_char; 1] = [0;1];
+        data[0] = CMD_WRIRE_ENABLE;
+        let mut _r: i32 = 0;
+        _r = unsafe{wiringPiSPIDataRW (self.spi_channel,data.as_mut_ptr(), data.len() as i32)};
+    }
+
+    pub fn erase_sector(&mut self, sector_number: u16, figwait: bool) -> bool {
+        let mut slice :[u8;4] = [0;4];
+        let mut data: [::std::os::raw::c_char; 4] = [0;4];
+        let mut address:u32 = sector_number as u32;
+        address <<=12;
+        self.write_enable();
+        data[0] = CMD_SECTOR_ERASE;
+        data[1] = ((address>>16) & 0xff) as u8;
+        data[2] = ((address>>8) & 0xff) as u8;
+        data[3] = (address & 0xff) as u8;
+        let mut _r: i32 = 0;
+        _r = unsafe{wiringPiSPIDataRW (self.spi_channel,data.as_mut_ptr(), data.len() as i32)};
+        loop {
+            if (self.is_busy() && figwait) {
+                std::thread::sleep(std::time::Duration::from_millis(10));
+            }
+        }
+        true
+    }
+
     pub fn read_manufacturer_id(&self) -> Result<[u8; 6], i32> {
         let mut slice :[u8;6] = [0;6];
         let mut data: [::std::os::raw::c_char; 6] = [0;6];
         let mut _r: i32 = 0;
-        data[0] = 0x90;
+        data[0] = CMD_MANUFACURER_ID;
         data[3] = 0x00;
         data[4] = 0xEF;
         data[5] = 0x17;
@@ -202,7 +299,7 @@ impl W25Q {
         let mut slice :[u8;4] = [0;4];
         let mut data: [::std::os::raw::c_char; 4] = [0;4];
         let mut _r: i32 = 0;
-        data[0] = 0x9F;
+        data[0] = CMD_JEDEC_ID;
         _r = unsafe{wiringPiSPIDataRW(self.spi_channel, data.as_mut_ptr(), data.len() as i32)};
         slice.clone_from_slice(&data[0..]);
         Ok(slice)
