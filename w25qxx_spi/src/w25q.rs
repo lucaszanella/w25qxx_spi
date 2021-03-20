@@ -22,65 +22,61 @@ impl W25Q {
         }
     }
 
-    pub fn read_status_register_1(&self) -> [u8;2]{
+    pub fn read_status_register_1(&self) -> Result<[u8;2], i32>{
         let mut slice :[u8;2] = [0;2];
         let mut data: [::std::os::raw::c_char; 2] = [0;2];
         data[0] = 0x05;
         let mut _r: i32 = 0;
         _r = unsafe{wiringPiSPIDataRW (self.spi_channel,data.as_mut_ptr(), data.len() as i32)};
         slice.clone_from_slice(&data);
-        slice
+        Ok(slice)
     }
 
-    pub fn read_status_register_2(&self) -> [u8;2]{
+    pub fn read_status_register_2(&self) ->  Result<[u8;2], i32>{
         let mut slice :[u8;2] = [0;2];
         let mut data: [::std::os::raw::c_char; 2] = [0;2];
         data[0] = 0x35;
         let mut _r: i32 = 0;
         _r = unsafe{wiringPiSPIDataRW (self.spi_channel,data.as_mut_ptr(), data.len() as i32)};
         slice.clone_from_slice(&data);
-        slice
+        Ok(slice)
     }
 
-    pub fn read_status_register_3(&self) -> [u8;2]{
+    pub fn read_status_register_3(&self) -> Result<[u8;2], i32>{
         let mut slice :[u8;2] = [0;2];
         let mut data: [::std::os::raw::c_char; 2] = [0;2];
         data[0] = 0x11;
         let mut _r: i32 = 0;
         _r = unsafe{wiringPiSPIDataRW (self.spi_channel,data.as_mut_ptr(), data.len() as i32)};
         slice.clone_from_slice(&data);
-        slice
-    }
-    /*
-    //
-    // ステータスレジスタ1の値取得
-    // 戻り値: ステータスレジスタ1の値
-    //
-    uint8_t W25Q64_readStatusReg1(void) {
-    unsigned char data[2];
-    int rc;
-    UNUSED(rc);
-    data[0] = CMD_READ_STATUS_R1;
-    rc = wiringPiSPIDataRW (_spich,data,sizeof(data));
-    //spcDump("readStatusReg1",rc,data,2);
-    return data[1];
+        Ok(slice)
     }
 
-    //
-    // ステータスレジスタ2の値取得
-    // 戻り値: ステータスレジスタ2の値
-    //
-    uint8_t W25Q64_readStatusReg2(void) {
-    unsigned char data[2];
-    int rc;
-    UNUSED(rc);
-    data[0] = CMD_READ_STATUS_R2;
-    rc = wiringPiSPIDataRW (_spich,data,sizeof(data));
-    //spcDump("readStatusReg2",rc,data,2);
-    return data[1];
+    pub fn read_unique_id(&self) ->  Result<[u8;13], i32> {
+        let mut slice :[u8;13] = [0;13];
+        let mut data: [::std::os::raw::c_char; 2] = [0;2];
+        data[0] = 0x4B;
+        let mut _r: i32 = 0;
+        _r = unsafe{wiringPiSPIDataRW (self.spi_channel,data.as_mut_ptr(), data.len() as i32)};
+        slice.clone_from_slice(&data);
+        Ok(slice)
     }
-    */
-    pub fn read_manufacturer_id(&self) -> [u8; 6] {
+
+    pub fn read(&self, address: u32, number_of_bytes: u16) ->  Result<Vec<u8>, u16> {
+        let s: usize = number_of_bytes as usize + 4;
+        let mut data = Vec::<::std::os::raw::c_char>::with_capacity(s);
+        data.set_len(s);
+        data[0] = 0x4B;
+        data[1] = ((address>>16) & 0xFF) as u8;     // A23-A16
+        data[2] = ((address>>8) & 0xFF) as u8;      // A15-A08
+        data[3] = (address & 0xFF) as u8;           // A07-A00
+        let mut _r: i32 = 0;
+        _r = unsafe{wiringPiSPIDataRW(self.spi_channel,data.as_mut_slice().as_mut_ptr(), data.len() as i32)};
+        let v = (&(data.as_slice())[4..]).to_vec();
+        Ok(v)
+    }
+
+    pub fn read_manufacturer_id(&self) -> Result<[u8; 6], i32> {
         let mut slice :[u8;6] = [0;6];
         let mut data: [::std::os::raw::c_char; 6] = [0;6];
         let mut _r: i32 = 0;
@@ -90,16 +86,16 @@ impl W25Q {
         data[5] = 0x17;
         _r = unsafe{wiringPiSPIDataRW(self.spi_channel, data.as_mut_ptr(), data.len() as i32)};
         slice.clone_from_slice(&data[0..]);
-        slice
+        Ok(slice)
     }
 
-    pub fn read_jedec_id(&self) -> [u8; 4] {
+    pub fn read_jedec_id(&self) -> Result<[u8; 4], i32> {
         let mut slice :[u8;4] = [0;4];
         let mut data: [::std::os::raw::c_char; 4] = [0;4];
         let mut _r: i32 = 0;
         data[0] = 0x9F;
         _r = unsafe{wiringPiSPIDataRW(self.spi_channel, data.as_mut_ptr(), data.len() as i32)};
         slice.clone_from_slice(&data[0..]);
-        slice
+        Ok(slice)
     }
 }
