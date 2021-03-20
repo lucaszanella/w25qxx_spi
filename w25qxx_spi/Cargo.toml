@@ -15,8 +15,9 @@ path = "src/main.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+nix = "0.20.0"
+libc = "0.2.5"
 
 [build-dependencies]
 bindgen = "0.57"
-
 

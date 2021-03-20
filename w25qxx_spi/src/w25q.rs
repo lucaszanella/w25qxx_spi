@@ -1,11 +1,48 @@
 use wiringpi::*;
+use std::ffi::CString;
 
 const CMD_JEDEC_ID: u8 = 0x9f;
-
+const SPI_BW: u8 = 8;
+const SPI_DELAY: u16 = 0;
 
 pub struct W25Q {
     spi_channel: i32,
-    spi_speed: i32
+    spi_speed: i32,
+    spi_speeds: [u32; 2],
+    spi_fds: [i32; 2]
+}
+
+struct SpiIocTransfer {
+    tx_buf: u64,
+    rx_buf: u64,
+    len: u32,
+    speed_hz: u32,
+    delay_usecs: u16,
+    bits_per_word: u8,
+    cs_change: u8,
+    pad: u32
+    /* If the contents of 'struct spi_ioc_transfer' ever change
+    * incompatibly, then the ioctl number (currently 0) must change;
+    * ioctls with constant size fields get a bit more in the way of
+    * error checking than ones (like this) where that field varies.
+    *
+    * NOTE: struct layout is the same in 64bit and 32bit userspace.
+    */
+}
+
+impl SpiIocTransfer {
+    pub fn new() -> SpiIocTransfer {
+        SpiIocTransfer{
+            tx_buf: 0,
+            rx_buf: 0,
+            len: 0,
+            speed_hz: 0,
+            delay_usecs: 0,
+            bits_per_word: 0,
+            cs_change: 0,
+            pad: 0
+        }
+    }
 }
 
 impl W25Q {
@@ -13,6 +50,8 @@ impl W25Q {
         let w = W25Q {
             spi_channel: spi_channel,
             spi_speed: spi_speed,
+            spi_speeds: [0,0],
+            spi_fds: [0,0]
         };
         let r = unsafe{wiringPiSPISetup(w.spi_channel, w.spi_speed)};
         if r>=0 {
@@ -20,6 +59,75 @@ impl W25Q {
         } else {
             Err(())
         }
+    }
+
+    pub fn spi_data_rw(&mut self, channel_: i32, data: &[u8], len: u32) -> i32 {
+        let channel = channel_ & 1;
+        let spi = SpiIocTransfer::new();
+        spi.tx_buf        = data.as_mut_ptr();//(unsigned long) ?
+        spi.rx_buf        = data.as_mut_ptr();//(unsigned long) ?
+        spi.len           = len;
+        spi.delay_usecs   = SPI_DELAY;
+        spi.speed_hz      = self.spi_speeds[channel as usize] as u32;
+        spi.bits_per_word = SPI_BW;
+        
+        libc::ioctl(self.spi_fds[channel as usize], lubc::SPI_IOC_MESSAGE(1), &spi)
+    }
+
+    /*
+        int wiringPiSPIDataRW (int channel, unsigned char *data, int len)
+        {
+        struct spi_ioc_transfer spi ;
+
+        channel &= 1 ;
+
+        // Mentioned in spidev.h but not used in the original kernel documentation
+        //	test program )-:
+
+        memset (&spi, 0, sizeof (spi)) ;
+
+        spi.tx_buf        = (unsigned long)data ;
+        spi.rx_buf        = (unsigned long)data ;
+        spi.len           = len ;
+        spi.delay_usecs   = spiDelay ;
+        spi.speed_hz      = spiSpeeds [channel] ;
+        spi.bits_per_word = spiBPW ;
+
+        return ioctl (spiFds [channel], SPI_IOC_MESSAGE(1), &spi) ;
+        }
+    */
+
+    fn spi_setup_mode(&mut self, channel: i32, speed: u32, mode_: i32) -> Result<i32,String>{
+        let mut fd: i32 = -1;
+        let mut spi_dev:[::std::os::raw::c_char; 32] = [0; 32];
+        let mode = mode_ & 3;
+        let s = CString::new("/dev/spidev0.%d").expect("CString::new failed");
+        unsafe{libc::snprintf(spi_dev.as_mut_ptr(), 31, s.as_ptr(), channel)};
+        fd = libc::open (spi_dev.as_mut_ptr(), libc::O_RDWR);
+
+        if fd < 0 {
+            return Err(format!("Unable to open SPI device: {}", 1));
+        }
+
+        self.spi_speeds[channel as usize] = speed;
+        self.spi_fds[channel as usize] = fd;
+        libc::ioctl(fd, libc::SPI_IOC_WR_MODE, &mode);
+
+        if fd < 0 {
+            return Err(format!("SPI Mode Change failure, {}", 1));
+        }
+
+        libc::ioctl(fd, libc::SPI_IOC_WR_BITS_PER_WORD, SPI_BW as libc::c_uint);
+        if fd < 0 {
+            return Err(format!("SPI BPW Change failure: {}", 1));
+        }
+
+        libc::ioctl(fd, libc::SPI_IOC_WR_MAX_SPEED_HZ, &speed);
+        if fd < 0 {
+            return Err(format!("SPI Speed Change failure: {}", 1));
+        }
+
+        Ok(fd)
     }
 
     pub fn read_status_register_1(&self) -> Result<[u8;2], i32>{
@@ -64,8 +172,7 @@ impl W25Q {
 
     pub fn read(&self, address: u32, number_of_bytes: u16) ->  Result<Vec<u8>, u16> {
         let s: usize = number_of_bytes as usize + 4;
-        let mut data = Vec::<::std::os::raw::c_char>::with_capacity(s);
-        data.set_len(s);
+        let mut data = vec![0u8;s];
         data[0] = 0x4B;
         data[1] = ((address>>16) & 0xFF) as u8;     // A23-A16
         data[2] = ((address>>8) & 0xFF) as u8;      // A15-A08
