@@ -1,4 +1,4 @@
-use wiringpi::*;
+use w25qlib::*;
 use std::ffi::CString;
 
 const SPI_BW: u8 = 8;

@@ -13,8 +13,8 @@ name = "main"
 path = "src/main.rs"
 
 [[bin]]
-name = "sha_check"
-path = "src/sha_check.rs"
+name = "sha"
+path = "src/sha.rs"
 
 [dependencies]
 libc = "0.2.5"
