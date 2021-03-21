@@ -1,5 +1,6 @@
 mod w25q;
 use w25q::W25Q;
+use sha2::{Sha256, Digest};
 
 const SPI_CHANNEL: i32 = 0;
 //2MHz
@@ -49,28 +50,14 @@ fn main() {
     dump_slice(&jedec_id);
     print!("unique_id:: ");
     dump_slice(&unique_id);
-    let mut s: [u8; 256] = [0;256];
-    for i in 1..256 {
-        s[i] = i as u8;
-    }
+    
+    //16mb or 128mbit
+    let base2: i32 = 2;
+    let total_size = base2.pow(24);
+    let mut data = vec![0u8;total_size as usize];
+    let mut hasher = Sha256::new();
+    hasher.update(data);
+    let result = hasher.finalize();
+    println!("sha256 before write: {}", result.result_bytes());
 
-    println!("gonna erase sector");
-    let b = w25q.erase_sector(0, true);
-    println!("erase sector: {}", b);
-    println!("gonna read sector");
-    let buffer = w25q.read(0, 256).unwrap();
-    dump_vec(&buffer);
-
-    let mut d:[u8;255] = [0;255];
-    for i in 0..255 {
-        d[i as usize] = i as u8;
-    }
-    let n = w25q.page_write(0, 0, &d);
-    println!("did write: {} bytes", n);
-
-    println!("gonna read changes");
-    let buffer = w25q.read(0, 256).unwrap();
-    dump_vec(&buffer);
-    println!("buffer length: {}", buffer.len());
-    println!("end");
 }
