@@ -37,18 +37,19 @@ fn main() {
     let jedec_id = w25q.read_jedec_id().unwrap();
     let unique_id = w25q.read_unique_id().unwrap();
 
-    print!("register_1: ");
-    dump_slice(&register_1);
-    print!("register_2: ");
-    dump_slice(&register_2);
-    print!("register_3: ");
-    dump_slice(&register_3);
     print!("manufacturer_id: ");
     dump_slice(&manufacturer_id);
     print!("jedec_id: ");
     dump_slice(&jedec_id);
     print!("unique_id:: ");
     dump_slice(&unique_id);
+    print!("register_1: ");
+    dump_slice(&register_1);
+    print!("register_2: ");
+    dump_slice(&register_2);
+    print!("register_3: ");
+    dump_slice(&register_3);
+
     let mut s: [u8; 256] = [0;256];
     for i in 1..256 {
         s[i] = i as u8;

@@ -168,9 +168,11 @@ impl W25Q {
         data[1] = (address>>16 & 0xFF) as u8;     // A23-A16
         data[2] = (address>>8 & 0xFF) as u8;      // A15-A08
         data[3] = (address & 0xFF) as u8;         // A07-A00
+        /*
         for i in 1..4 {
             println!("read[{}] = {}", i, data[i]);
         }
+        */
         let mut _r: i32 = 0;
         _r = unsafe{wiringPiSPIDataRW(self.spi_channel,data.as_mut_slice().as_mut_ptr(), data.len() as i32)};
         let v = (&(data.as_slice())[4..]).to_vec();

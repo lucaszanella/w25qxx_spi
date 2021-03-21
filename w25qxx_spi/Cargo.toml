@@ -20,6 +20,7 @@ path = "src/sha.rs"
 libc = "0.2.5"
 ioctls = "0.6.1"
 sha2 = "0.9.3"
+rand = "0.8"
 
 [build-dependencies]
 bindgen = "0.57"

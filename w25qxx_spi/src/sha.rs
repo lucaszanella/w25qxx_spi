@@ -1,6 +1,7 @@
 mod w25q;
 use w25q::W25Q;
 use sha2::{Sha256, Digest};
+use rand::Rng; // 0.8.0
 
 const SPI_CHANNEL: i32 = 0;
 //2MHz
@@ -45,24 +46,29 @@ fn main() {
     let jedec_id = w25q.read_jedec_id().unwrap();
     let unique_id = w25q.read_unique_id().unwrap();
 
-    print!("register_1: ");
-    dump_slice(&register_1);
-    print!("register_2: ");
-    dump_slice(&register_2);
-    print!("register_3: ");
-    dump_slice(&register_3);
     print!("manufacturer_id: ");
     dump_slice(&manufacturer_id);
     print!("jedec_id: ");
     dump_slice(&jedec_id);
     print!("unique_id:: ");
     dump_slice(&unique_id);
+    print!("register_1: ");
+    dump_slice(&register_1);
+    print!("register_2: ");
+    dump_slice(&register_2);
+    print!("register_3: ");
+    dump_slice(&register_3);
+
     
     let mut hasher = Sha256::new();
     //16mb or 128mbit
     let base2: u32 = 2;
     let total_size: u32 = base2.pow(24);
     let mut data = vec![0u8;total_size as usize];
+    println!("randomizing data...");
+    for i in 0..data.len() {
+        data[i as usize] =  rand::thread_rng().gen_range(0..255);
+    }
     let per_write: u16 = 256;
     let s:u32 = total_size/(per_write as u32);
     let mut bytes_written = 0;
@@ -72,27 +78,26 @@ fn main() {
         let end: usize = s as usize + per_write as usize;
         let n = w25q.page_write(0, s, &data[begin..end]);
         bytes_written += n;
-        //print!(".");
     }
     println!("bytes written: {}", bytes_written);
     println!("calculating sha256sum of data from RAM (not spi)");
     hasher.update(data);
     let result = hasher.finalize();
-    println!("sha256 before write:");
-    dump_hash(result.as_slice());
+    println!("sha256 before write: {:x}", result);
     println!("reading data from spi...");
     let mut data = vec![0u8;total_size as usize];
+    let mut bytes_read = 0;
     for i in 0..s {
         let buffer = w25q.read(s, per_write as u16).unwrap();
+        bytes_read += buffer.len();
         for i in 0..buffer.len() {
             data.push(buffer[i]);
         }
-        //print!(".");
     }
+    println!("bytes read: {}", bytes_read);
     println!("calculating sha256sum of data from spi");
     let mut hasher = Sha256::new();
     hasher.update(data);
     let result = hasher.finalize();
-    println!("sha256 after write:");
-    dump_hash(result.as_slice());
+    println!("sha256 after write: {:x}", result);
 }
