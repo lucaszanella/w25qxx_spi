@@ -72,7 +72,7 @@ fn main() {
         let end: usize = s as usize + per_write as usize;
         let n = w25q.page_write(0, s, &data[begin..end]);
         bytes_written += n;
-        print!(".");
+        //print!(".");
     }
     println!("bytes written: {}", bytes_written);
     println!("calculating sha256sum of data from RAM (not spi)");
@@ -87,7 +87,7 @@ fn main() {
         for i in 0..buffer.len() {
             data.push(buffer[i]);
         }
-        print!(".");
+        //print!(".");
     }
     println!("calculating sha256sum of data from spi");
     let mut hasher = Sha256::new();
