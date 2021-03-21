@@ -28,6 +28,13 @@ fn dump_vec(vec: &Vec<u8>) {
     println!("");
 }
 
+fn dump_hash(array: &[u8]) {
+    for i in 0..array.len() {
+        print!("{}", array[i]);
+    }
+    println!("");
+}
+
 fn main() {
 
     let mut w25q = W25Q::new(SPI_CHANNEL, SPEED).unwrap();
@@ -51,13 +58,34 @@ fn main() {
     print!("unique_id:: ");
     dump_slice(&unique_id);
     
+    let mut hasher = Sha256::new();
     //16mb or 128mbit
-    let base2: i32 = 2;
-    let total_size = base2.pow(24);
+    let base2: u32 = 2;
+    let total_size: u32 = base2.pow(24);
     let mut data = vec![0u8;total_size as usize];
+    let per_write: u16 = 256;
+    let s:u32 = total_size/(per_write as u32);
+    let mut bytes_written = 0;
+    for i in 0..s {
+        let begin: usize = s as usize;
+        let end: usize = s as usize + per_write as usize;
+        let n = w25q.page_write(0, s, &data[begin..end]);
+        bytes_written += n;
+    }
+    hasher.update(data);
+    let result = hasher.finalize();
+    println!("sha256 before write:");
+    dump_hash(result.as_slice());
+    println!("bytes written: {}", bytes_written);
+    let mut data = vec![0u8;total_size as usize];
+    for i in 0..s {
+        let buffer = w25q.read(s, per_write as u16).unwrap();
+        data.copy_from_slice(buffer.as_slice());
+    }
+
     let mut hasher = Sha256::new();
     hasher.update(data);
     let result = hasher.finalize();
-    println!("sha256 before write: {}", result.result_bytes());
-
+    println!("sha256 after write:");
+    dump_hash(result.as_slice());
 }
