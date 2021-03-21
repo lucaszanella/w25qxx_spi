@@ -61,8 +61,8 @@ fn main() {
     let buffer = w25q.read(0, 256).unwrap();
     dump_vec(&buffer);
 
-    let mut d:[u8;255] = [0;255];
-    for i in 0..255 {
+    let mut d:[u8;100] = [0;100];
+    for i in 0..100 {
         d[i as usize] = i as u8;
     }
     let n = w25q.page_write(0, 0, &d);

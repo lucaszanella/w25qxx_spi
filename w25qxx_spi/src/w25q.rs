@@ -224,7 +224,7 @@ impl W25Q {
         }
         println!("");
         */
-        _r = unsafe{wiringPiSPIDataRW(self.spi_channel,(&mut data[4..]).as_mut_ptr(), (buffer.len() + 4) as i32)};
+        _r = unsafe{wiringPiSPIDataRW(self.spi_channel, data.as_mut_slice().as_mut_ptr(), (buffer.len() + 4) as i32)};
         loop {
             if !self.is_busy() {
                 break;
