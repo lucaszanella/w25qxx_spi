@@ -84,7 +84,9 @@ fn main() {
     let mut data = vec![0u8;total_size as usize];
     for i in 0..s {
         let buffer = w25q.read(s, per_write as u16).unwrap();
-        data.copy_from_slice(buffer.as_slice());
+        for i in 0..buffer.len() {
+            data.push(buffer[i]);
+        }
         print!(".");
     }
     println!("calculating sha256sum of data from spi");
