@@ -35,6 +35,8 @@ fn main() {
     let register_3 = w25q.read_status_register_3().unwrap();
     let manufacturer_id = w25q.read_manufacturer_id().unwrap();
     let jedec_id = w25q.read_jedec_id().unwrap();
+    let unique_id = w25q.read_unique_id().unwrap();
+
     print!("register_1: ");
     dump_slice(&register_1);
     print!("register_2: ");
@@ -45,11 +47,17 @@ fn main() {
     dump_slice(&manufacturer_id);
     print!("jedec_id: ");
     dump_slice(&jedec_id);
-
+    print!("unique_id:: ");
+    dump_slice(&unique_id);
     let mut s: [u8; 256] = [0;256];
     for i in 1..256 {
         s[i] = i as u8;
     }
+
+    let buffer = w25q.read(0, 256).unwrap();
+    dump_vec(&buffer);
+
+    println!("-----------------------");
 
     println!("gonna erase sector");
     let b = w25q.erase_sector(0, true);

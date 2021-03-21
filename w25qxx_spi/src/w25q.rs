@@ -13,6 +13,7 @@ const CMD_SECTOR_ERASE: u8 = 0x20;
 const CMD_MANUFACURER_ID: u8 = 0x90;
 const CMD_JEDEC_ID: u8 = 0x9f;
 const CMD_PAGE_PROGRAM: u8 = 0x02;
+const CMD_READ_DATA: u8 = 0x03;
 
 pub struct W25Q {
     spi_channel: i32,
@@ -150,20 +151,20 @@ impl W25Q {
         Ok(slice)
     }
 
-    pub fn read_unique_id(&self) ->  Result<[u8;13], i32> {
-        let mut slice :[u8;13] = [0;13];
-        let mut data: [::std::os::raw::c_char; 2] = [0;2];
+    pub fn read_unique_id(&self) ->  Result<[u8;8], i32> {
+        let mut slice :[u8;8] = [0;8];
+        let mut data: [::std::os::raw::c_char; 13] = [0;13];
         data[0] = CMD_READ_UNIQUE_ID;
         let mut _r: i32 = 0;
         _r = unsafe{wiringPiSPIDataRW(self.spi_channel,data.as_mut_ptr(), data.len() as i32)};
-        slice.clone_from_slice(&data);
+        slice.clone_from_slice(&data[5..]);
         Ok(slice)
     }
 
     pub fn read(&self, address: u32, number_of_bytes: u16) ->  Result<Vec<u8>, u16> {
         let s: usize = number_of_bytes as usize + 4;
         let mut data = vec![0u8;s];
-        data[0] = CMD_READ_UNIQUE_ID;
+        data[0] = CMD_READ_DATA;
         data[1] = (address>>16 & 0xFF) as u8;     // A23-A16
         data[2] = (address>>8 & 0xFF) as u8;      // A15-A08
         data[3] = (address & 0xFF) as u8;         // A07-A00
