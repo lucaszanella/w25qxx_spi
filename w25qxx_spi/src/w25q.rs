@@ -83,30 +83,6 @@ impl W25Q {
         //libc::ioctl(self.spi_fds[channel as usize], ioctls::SPI_IOC_MESSAGE(1), &spi)
     }
 
-
-    /*
-        int wiringPiSPIDataRW (int channel, unsigned char *data, int len)
-        {
-        struct spi_ioc_transfer spi ;
-
-        channel &= 1 ;
-
-        // Mentioned in spidev.h but not used in the original kernel documentation
-        //	test program )-:
-
-        memset (&spi, 0, sizeof (spi)) ;
-
-        spi.tx_buf        = (unsigned long)data ;
-        spi.rx_buf        = (unsigned long)data ;
-        spi.len           = len ;
-        spi.delay_usecs   = spiDelay ;
-        spi.speed_hz      = spiSpeeds [channel] ;
-        spi.bits_per_word = spiBPW ;
-
-        return ioctl (spiFds [channel], SPI_IOC_MESSAGE(1), &spi) ;
-        }
-    */
-
     fn spi_setup_mode(&mut self, channel: i32, speed: u32, mode_: i32) -> Result<i32,String>{
         let mut fd: i32 = -1;
         let spi_dev:[::std::os::raw::c_char; 32] = [0; 32];
@@ -149,7 +125,7 @@ impl W25Q {
         let mut data: [::std::os::raw::c_char; 2] = [0;2];
         data[0] = CMD_READ_STATUS_R1;
         let mut _r: i32 = 0;
-        _r = unsafe{wiringPiSPIDataRW (self.spi_channel,data.as_mut_ptr(), data.len() as i32)};
+        _r = unsafe{wiringPiSPIDataRW(self.spi_channel,data.as_mut_ptr(), data.len() as i32)};
         slice.clone_from_slice(&data);
         Ok(slice)
     }
@@ -159,7 +135,7 @@ impl W25Q {
         let mut data: [::std::os::raw::c_char; 2] = [0;2];
         data[0] = CMD_READ_STATUS_R2;
         let mut _r: i32 = 0;
-        _r = unsafe{wiringPiSPIDataRW (self.spi_channel,data.as_mut_ptr(), data.len() as i32)};
+        _r = unsafe{wiringPiSPIDataRW(self.spi_channel,data.as_mut_ptr(), data.len() as i32)};
         slice.clone_from_slice(&data);
         Ok(slice)
     }
@@ -169,7 +145,7 @@ impl W25Q {
         let mut data: [::std::os::raw::c_char; 2] = [0;2];
         data[0] = CMD_READ_STATUS_R3;
         let mut _r: i32 = 0;
-        _r = unsafe{wiringPiSPIDataRW (self.spi_channel,data.as_mut_ptr(), data.len() as i32)};
+        _r = unsafe{wiringPiSPIDataRW(self.spi_channel,data.as_mut_ptr(), data.len() as i32)};
         slice.clone_from_slice(&data);
         Ok(slice)
     }
@@ -179,7 +155,7 @@ impl W25Q {
         let mut data: [::std::os::raw::c_char; 2] = [0;2];
         data[0] = CMD_READ_UNIQUE_ID;
         let mut _r: i32 = 0;
-        _r = unsafe{wiringPiSPIDataRW (self.spi_channel,data.as_mut_ptr(), data.len() as i32)};
+        _r = unsafe{wiringPiSPIDataRW(self.spi_channel,data.as_mut_ptr(), data.len() as i32)};
         slice.clone_from_slice(&data);
         Ok(slice)
     }
@@ -188,58 +164,23 @@ impl W25Q {
         let s: usize = number_of_bytes as usize + 4;
         let mut data = vec![0u8;s];
         data[0] = CMD_READ_UNIQUE_ID;
-        data[1] = ((address>>16) & 0xFF) as u8;     // A23-A16
-        data[2] = ((address>>8) & 0xFF) as u8;      // A15-A08
-        data[3] = (address & 0xFF) as u8;           // A07-A00
+        data[1] = (address>>16 & 0xFF) as u8;     // A23-A16
+        data[2] = (address>>8 & 0xFF) as u8;      // A15-A08
+        data[3] = (address & 0xFF) as u8;         // A07-A00
+        for i in 1..4 {
+            println!("read[{}] = {}", i, data[i]);
+        }
         let mut _r: i32 = 0;
         _r = unsafe{wiringPiSPIDataRW(self.spi_channel,data.as_mut_slice().as_mut_ptr(), data.len() as i32)};
         let v = (&(data.as_slice())[4..]).to_vec();
         Ok(v)
     }
 
-        /*
-    bool W25Q64_eraseSector(uint16_t sect_no, bool flgwait) {
-        unsigned char data[4];
-        int rc;
-        UNUSED(rc);
-        uint32_t addr = sect_no;
-        addr<<=12;
-
-        W25Q64_WriteEnable();
-        data[0] = CMD_SECTOR_ERASE;
-        data[1] = (addr>>16) & 0xff;
-        data[2] = (addr>>8) & 0xff;
-        data[3] = addr & 0xff;
-        rc = wiringPiSPIDataRW (_spich,data,sizeof(data));
-        
-        // 処理待ち
-        while(W25Q64_IsBusy() & flgwait) {
-            delay(10);
-        }
-        return true;
-        }
-    */
-
-
-    /*
-        bool W25Q64_IsBusy(void) {
-            unsigned char data[2];
-            int rc;
-            UNUSED(rc);
-            data[0] = CMD_READ_STATUS_R1;
-            rc = wiringPiSPIDataRW (_spich,data,sizeof(data));
-            //spcDump("IsBusy",rc,data,2);
-            uint8_t r1;
-            r1 = data[1];
-            if(r1 & SR1_BUSY_MASK) return true;
-            return false;
-        }
-    */
     pub fn is_busy(&mut self) -> bool{
         let mut data: [::std::os::raw::c_char; 2] = [0;2];
         data[0] = CMD_READ_STATUS_R1;
         let mut _r: i32 = 0;
-        _r = unsafe{wiringPiSPIDataRW (self.spi_channel,data.as_mut_ptr(), data.len() as i32)};
+        _r = unsafe{wiringPiSPIDataRW(self.spi_channel,data.as_mut_ptr(), data.len() as i32)};
         let mut r1: u8 = 0;
         r1 = data[1];
         if (r1 & SR1_BUSY_MASK) !=0 {
@@ -248,58 +189,12 @@ impl W25Q {
         false
     }
 
-    /*
-          unsigned char data[1];
-        int rc;
-        UNUSED(rc);
-        data[0] = CMD_WRIRE_ENABLE;
-        rc = wiringPiSPIDataRW (_spich,data,sizeof(data));
-    */
-
     pub fn write_enable(&mut self) {
         let mut data: [::std::os::raw::c_char; 1] = [0;1];
         data[0] = CMD_WRIRE_ENABLE;
         let mut _r: i32 = 0;
-        _r = unsafe{wiringPiSPIDataRW (self.spi_channel,data.as_mut_ptr(), data.len() as i32)};
+        _r = unsafe{wiringPiSPIDataRW(self.spi_channel,data.as_mut_ptr(), data.len() as i32)};
     }
-
-    /*
-            //
-        // データの書き込み
-        // sect_no(in) : セクタ番号(0x000 - 0xFFF) 
-        // inaddr(in)  : セクタ内アドレス(0x000-0xFFF)
-        // data(in)    : 書込みデータ格納アドレス
-        // n(in)       : 書込みバイト数(0～256)
-        //
-        uint16_t W25Q64_pageWrite(uint16_t sect_no, uint16_t inaddr, uint8_t* buf, uint16_t n) {
-        if (n > 256) return 0;
-        unsigned char *data;
-        int rc;
-
-        uint32_t addr = sect_no;
-        addr<<=12;
-        addr += inaddr;
-
-        // 書込み許可設定
-        W25Q64_WriteEnable();  
-        if (W25Q64_IsBusy()) return 0;  
-
-        data = (unsigned char*)malloc(n+4);
-        data[0] = CMD_PAGE_PROGRAM;
-        data[1] = (addr>>16) & 0xff;
-        data[2] = (addr>>8) & 0xff;
-        data[3] = addr & 0xFF;
-        memcpy(&data[4],buf,n);
-        rc = wiringPiSPIDataRW (_spich,data,n+4);
-        //spcDump("pageWrite",rc,buf,n);
-
-        // 処理待ち
-        while(W25Q64_IsBusy()) ;
-        free(data);
-        return rc;
-        }
-
-    */
 
     pub fn page_write(&mut self, sector_number: u16, input_address: u16, slice: &[u8], n: u16) -> u32 {
         if (n > 256) {
@@ -318,7 +213,7 @@ impl W25Q {
         data[1] = ((address>>16) & 0xff) as u8;
         data[2] = ((address>>8) & 0xff) as u8;
         data[3] = (address & 0xFF) as u8;
-        _r = unsafe{wiringPiSPIDataRW (self.spi_channel,(&mut data[4..]).as_mut_ptr(), (n + 4) as i32)};
+        _r = unsafe{wiringPiSPIDataRW(self.spi_channel,(&mut data[4..]).as_mut_ptr(), (n + 4) as i32)};
         loop {
             if !self.is_busy() {
                 break;
@@ -331,17 +226,19 @@ impl W25Q {
         let mut slice :[u8;4] = [0;4];
         let mut data: [::std::os::raw::c_char; 4] = [0;4];
         let mut address:u32 = sector_number as u32;
-        address <<=12;
+        address <<= 12;
         self.write_enable();
         data[0] = CMD_SECTOR_ERASE;
         data[1] = ((address>>16) & 0xff) as u8;
         data[2] = ((address>>8) & 0xff) as u8;
         data[3] = (address & 0xff) as u8;
         let mut _r: i32 = 0;
-        _r = unsafe{wiringPiSPIDataRW (self.spi_channel,data.as_mut_ptr(), data.len() as i32)};
+        _r = unsafe{wiringPiSPIDataRW(self.spi_channel,data.as_mut_ptr(), data.len() as i32)};
         loop {
             if (self.is_busy() && figwait) {
                 std::thread::sleep(std::time::Duration::from_millis(10));
+            } else {
+                break;
             }
         }
         true

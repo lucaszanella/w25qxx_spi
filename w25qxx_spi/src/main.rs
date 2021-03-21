@@ -29,7 +29,7 @@ fn dump_vec(vec: &Vec<u8>) {
 
 fn main() {
 
-    let w25q = W25Q::new(SPI_CHANNEL, SPEED).unwrap();
+    let mut w25q = W25Q::new(SPI_CHANNEL, SPEED).unwrap();
     let register_1 = w25q.read_status_register_1().unwrap();
     let register_2 = w25q.read_status_register_2().unwrap();
     let register_3 = w25q.read_status_register_3().unwrap();
@@ -46,6 +46,19 @@ fn main() {
     print!("jedec_id: ");
     dump_slice(&jedec_id);
 
+    let mut s: [u8; 256] = [0;256];
+    for i in 1..256 {
+        s[i] = i as u8;
+    }
+
+    println!("gonna erase sector");
+    let b = w25q.erase_sector(0, true);
+    println!("erase sector: {}", b);
+    println!("gonna read sector");
+    let buffer = w25q.read(0, 256).unwrap();
+    dump_vec(&buffer);
+
+    //w25q.write()
 
     let buffer = w25q.read(0, 256).unwrap();
     dump_vec(&buffer);
