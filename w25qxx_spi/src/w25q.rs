@@ -257,6 +257,26 @@ impl W25Q {
         true
     }
 
+    pub fn erase_address(&mut self, address: u32, figwait: bool) -> bool {
+        let mut slice :[u8;4] = [0;4];
+        let mut data: [::std::os::raw::c_char; 4] = [0;4];
+        self.write_enable();
+        data[0] = CMD_SECTOR_ERASE;
+        data[1] = ((address>>16) & 0xff) as u8;
+        data[2] = ((address>>8) & 0xff) as u8;
+        data[3] = (address & 0xff) as u8;
+        let mut _r: i32 = 0;
+        _r = unsafe{wiringPiSPIDataRW(self.spi_channel,data.as_mut_ptr(), data.len() as i32)};
+        loop {
+            if (self.is_busy() && figwait) {
+                std::thread::sleep(std::time::Duration::from_millis(10));
+            } else {
+                break;
+            }
+        }
+        true
+    }
+
     pub fn read_manufacturer_id(&self) -> Result<[u8; 6], i32> {
         let mut slice :[u8;6] = [0;6];
         let mut data: [::std::os::raw::c_char; 6] = [0;6];

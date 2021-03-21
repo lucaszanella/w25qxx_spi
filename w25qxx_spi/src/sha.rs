@@ -76,6 +76,7 @@ fn main() {
     for i in 0..s {
         let begin: usize = s as usize;
         let end: usize = s as usize + per_write as usize;
+        w25q.erase_address(s, true);
         let n = w25q.page_write(0, s, &data[begin..end]);
         bytes_written += n;
     }
