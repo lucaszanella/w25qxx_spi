@@ -54,11 +54,6 @@ fn main() {
         s[i] = i as u8;
     }
 
-    let buffer = w25q.read(0, 256).unwrap();
-    dump_vec(&buffer);
-
-    println!("-----------------------");
-
     println!("gonna erase sector");
     let b = w25q.erase_sector(0, true);
     println!("erase sector: {}", b);
@@ -66,8 +61,14 @@ fn main() {
     let buffer = w25q.read(0, 256).unwrap();
     dump_vec(&buffer);
 
-    //w25q.write()
+    let mut d:[u8;255] = [0;255];
+    for i in 0..255 {
+        d[i as usize] = i as u8;
+    }
+    let n = w25q.page_write(0, 0, &d);
+    println!("did write: {} bytes", n);
 
+    println!("gonna read changes");
     let buffer = w25q.read(0, 256).unwrap();
     dump_vec(&buffer);
     println!("buffer length: {}", buffer.len());

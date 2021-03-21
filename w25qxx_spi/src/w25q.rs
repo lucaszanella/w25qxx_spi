@@ -197,30 +197,40 @@ impl W25Q {
         _r = unsafe{wiringPiSPIDataRW(self.spi_channel,data.as_mut_ptr(), data.len() as i32)};
     }
 
-    pub fn page_write(&mut self, sector_number: u16, input_address: u16, slice: &[u8], n: u16) -> u32 {
-        if (n > 256) {
+    pub fn page_write(&mut self, sector_number: u16, address: u32, buffer: &[u8]) -> u32 {
+        if (buffer.len() > 256) {
             return 0;
         }
         let mut _r: i32 = 0;
+        /*
         let mut address:u32 = sector_number as u32;
         address <<= 12;
         address += input_address as u32;
+        */
         self.write_enable();
         if self.is_busy() {
             return 0;
         }
-        let mut data = vec![0u8;(n+4) as usize];
+        let mut data = vec![0u8;(buffer.len()+4) as usize];
         data[0] = CMD_PAGE_PROGRAM;
-        data[1] = ((address>>16) & 0xff) as u8;
-        data[2] = ((address>>8) & 0xff) as u8;
+        data[1] = ((address>>16) & 0xFF) as u8;
+        data[2] = ((address>>8) & 0xFF) as u8;
         data[3] = (address & 0xFF) as u8;
-        _r = unsafe{wiringPiSPIDataRW(self.spi_channel,(&mut data[4..]).as_mut_ptr(), (n + 4) as i32)};
+        &data[4..].copy_from_slice(buffer);
+        /*
+        println!("write dump:");
+        for i in 0..data.len() {
+            print!("{},", data[i as usize]);
+        }
+        println!("");
+        */
+        _r = unsafe{wiringPiSPIDataRW(self.spi_channel,(&mut data[4..]).as_mut_ptr(), (buffer.len() + 4) as i32)};
         loop {
             if !self.is_busy() {
                 break;
             }
         }
-        _r as u32
+        (_r - 4) as u32
     }
 
     pub fn erase_sector(&mut self, sector_number: u16, figwait: bool) -> bool {
