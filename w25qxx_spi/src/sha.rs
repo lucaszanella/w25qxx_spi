@@ -29,6 +29,17 @@ fn dump_vec(vec: &Vec<u8>) {
     println!("");
 }
 
+fn dump_vec_subset(vec: &Vec<u8>, start: usize) {
+    for i in 0..vec.len() {
+        if i!=vec.len()-1 {
+            print!("{},", vec[i + start]);
+        } else { 
+            print!("{}", vec[i + start]);
+        }
+    }
+    println!("");
+}
+
 fn dump_hash(array: &[u8]) {
     for i in 0..array.len() {
         print!("{}", array[i]);
@@ -64,11 +75,15 @@ fn main() {
     //16mb or 128mbit
     let base2: u32 = 2;
     let total_size: u32 = base2.pow(24);
-    let mut data = vec![0u8;total_size as usize];
+    let mut data_to_write = vec![0u8;total_size as usize];
     println!("randomizing data...");
-    for i in 0..data.len() {
-        data[i as usize] =  rand::thread_rng().gen_range(0..255);
+    for i in 0..data_to_write.len() {
+        data_to_write[i as usize] =  rand::thread_rng().gen_range(0..255);
     }
+    println!("calculating sha256sum of data_to_write from RAM (not spi)");
+    hasher.update(&data_to_write.as_slice());
+    let result = hasher.finalize();
+
     let per_write: u16 = 256;
     let s:u32 = total_size/(per_write as u32);
     let mut bytes_written = 0;
@@ -77,28 +92,32 @@ fn main() {
         let begin: usize = s as usize;
         let end: usize = s as usize + per_write as usize;
         w25q.erase_address(s, true);
-        let n = w25q.page_write(0, s, &data[begin..end]);
+        let n = w25q.page_write(0, s, &data_to_write.as_slice()[begin..end]);
         bytes_written += n;
     }
     println!("bytes written: {}", bytes_written);
-    println!("calculating sha256sum of data from RAM (not spi)");
-    hasher.update(data);
-    let result = hasher.finalize();
     println!("sha256 before write: {:x}", result);
     println!("reading data from spi...");
-    let mut data = vec![0u8;total_size as usize];
+    let mut data_from_spi = vec![0u8;total_size as usize];
     let mut bytes_read = 0;
     for i in 0..s {
         let buffer = w25q.read(s, per_write as u16).unwrap();
         bytes_read += buffer.len();
         for i in 0..buffer.len() {
-            data.push(buffer[i]);
+            data_from_spi.push(buffer[i]);
         }
     }
     println!("bytes read: {}", bytes_read);
-    println!("calculating sha256sum of data from spi");
+    println!("calculating sha256sum of data_from_spi");
     let mut hasher = Sha256::new();
-    hasher.update(data);
+    hasher.update(&data_from_spi.as_slice());
     let result = hasher.finalize();
     println!("sha256 after write: {:x}", result);
+    for i in 0..data_to_write.len()/(per_write as usize) {
+        println!("data_to_write");
+        dump_vec_subset(&data_to_write, i as usize + per_write as usize);
+        println!("data_from_spi");
+        dump_vec_subset(&data_from_spi, i as usize + per_write as usize);
+        std::thread::sleep(std::time::Duration::from_secs(5));
+    }
 }
